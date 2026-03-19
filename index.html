@@ -380,12 +380,43 @@ async function compressImage(blob){
 
 async function uploadMedia(blob,type,filename){
   const id=nid(), now=new Date(), t=tp(now);
-  // 圖片先壓縮再上傳
-  const uploadBlob = type==="image" ? await compressImage(blob) : blob;
+
+  if(type==="image"){
+    // ── 圖片：先用 blob URL 即時顯示，背景壓縮上傳 ──
+    const previewUrl=URL.createObjectURL(blob);
+    const msg={id,type:"image",url:previewUrl,preview:true,filename:"",time:t,ts:Date.now()};
+    msgs.push(msg); appendEl(msg); scrollB(); hideEmpty(); updCnt();
+    // 在泡泡右上角顯示小小的上傳中指示
+    const imgEl=document.querySelector(`.msg[data-id="${id}"] img`);
+    if(imgEl) imgEl.style.opacity="0.7";
+
+    // 背景壓縮 + 上傳
+    compressImage(blob).then(async compressed=>{
+      try{
+        const path=`rooms/${ROOM}/${id}.webp`;
+        await uploadBytes(sref(st,path),compressed);
+        const firebaseUrl=await getDownloadURL(sref(st,path));
+        // 替換本機 preview URL → Firebase URL
+        URL.revokeObjectURL(previewUrl);
+        const idx=msgs.findIndex(m=>m.id===id);
+        if(idx!==-1) msgs[idx]={...msgs[idx],url:firebaseUrl,preview:false,storagePath:path};
+        if(imgEl){ imgEl.src=firebaseUrl; imgEl.style.opacity="1"; }
+        // 寫 Firestore（讓其他裝置也收到）
+        await setDoc(MDOC(id),{type:"image",url:firebaseUrl,filename:"",storagePath:path,time:t,ts:Date.now()});
+      }catch(e){
+        console.error(e); showToast("圖片同步失敗，僅本機可見 😢");
+        if(imgEl) imgEl.style.opacity="1";
+      }
+    });
+    return;
+  }
+
+  // ── 語音：顯示上傳中泡泡，等上傳完再出現播放器 ──
+  const uploadBlob=blob;
   const tmp={id,type,url:null,filename,time:t,upl:true};
   msgs.push(tmp); appendEl(tmp); scrollB(); hideEmpty(); updCnt();
   try{
-    const ext=type==="image"?"webp":(uploadBlob.type.includes("ogg")?"ogg":uploadBlob.type.split("/")[1]?.split(";")[0]||"bin");
+    const ext=uploadBlob.type.includes("ogg")?"ogg":uploadBlob.type.split("/")[1]?.split(";")[0]||"bin";
     const path=`rooms/${ROOM}/${id}.${ext}`;
     await uploadBytes(sref(st,path),uploadBlob);
     const url=await getDownloadURL(sref(st,path));
