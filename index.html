@@ -360,14 +360,34 @@ function sendTxt(){
   ta.value=""; ta.style.height="auto";
 }
 
+// 壓縮圖片：長邊縮到 1600px，輸出 webp 0.82
+async function compressImage(blob){
+  return new Promise(res=>{
+    const img=new Image(), url=URL.createObjectURL(blob);
+    img.onload=()=>{
+      const MAX=1600;
+      let w=img.naturalWidth, h=img.naturalHeight;
+      if(w>MAX||h>MAX){ const r=Math.min(MAX/w,MAX/h); w=Math.round(w*r); h=Math.round(h*r); }
+      const cv=document.createElement("canvas"); cv.width=w; cv.height=h;
+      cv.getContext("2d").drawImage(img,0,0,w,h);
+      URL.revokeObjectURL(url);
+      cv.toBlob(b=>res(b||blob),"image/webp",0.82);
+    };
+    img.onerror=()=>{ URL.revokeObjectURL(url); res(blob); };
+    img.src=url;
+  });
+}
+
 async function uploadMedia(blob,type,filename){
   const id=nid(), now=new Date(), t=tp(now);
+  // 圖片先壓縮再上傳
+  const uploadBlob = type==="image" ? await compressImage(blob) : blob;
   const tmp={id,type,url:null,filename,time:t,upl:true};
   msgs.push(tmp); appendEl(tmp); scrollB(); hideEmpty(); updCnt();
   try{
-    const ext=blob.type.includes("ogg")?"ogg":blob.type.split("/")[1]?.split(";")[0]||"bin";
+    const ext=type==="image"?"webp":(uploadBlob.type.includes("ogg")?"ogg":uploadBlob.type.split("/")[1]?.split(";")[0]||"bin");
     const path=`rooms/${ROOM}/${id}.${ext}`;
-    await uploadBytes(sref(st,path),blob);
+    await uploadBytes(sref(st,path),uploadBlob);
     const url=await getDownloadURL(sref(st,path));
     document.querySelector(`.msg[data-id="${id}"]`)?.remove();
     msgs=msgs.filter(m=>m.id!==id);
