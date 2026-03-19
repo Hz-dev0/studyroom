@@ -273,9 +273,7 @@ import { initializeApp }                from "https://www.gstatic.com/firebasejs
 import { getFirestore, collection, doc,
          onSnapshot, setDoc, deleteDoc,
          query, orderBy }               from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
-import { getStorage, ref as sref,
-         uploadBytes, getDownloadURL,
-         deleteObject }                 from "https://www.gstatic.com/firebasejs/12.11.0/firebase-storage.js";
+// Storage not used — images stored as base64 in Firestore
 
 const app = initializeApp({
   apiKey:            "AIzaSyD_kMYInDxbrc8ldT3h6IUBvFx1zX4X1XM",
@@ -286,7 +284,7 @@ const app = initializeApp({
   appId:             "1:137465066738:web:9ab869d2b44d62a26b8c6b"
 });
 const db   = getFirestore(app);
-const st   = getStorage(app);
+
 const ROOM = "default";
 const COLL = () => collection(db,"rooms",ROOM,"messages");
 const MDOC = id  => doc(db,"rooms",ROOM,"messages",id);
@@ -360,18 +358,18 @@ function sendTxt(){
   ta.value=""; ta.style.height="auto";
 }
 
-// 壓縮圖片：長邊縮到 1600px，輸出 webp 0.82
+// 壓縮圖片：長邊縮到 800px，輸出 webp 0.75（約 100-200KB，符合 Firestore 1MB 限制）
 async function compressImage(blob){
   return new Promise(res=>{
     const img=new Image(), url=URL.createObjectURL(blob);
     img.onload=()=>{
-      const MAX=1600;
+      const MAX=1200;
       let w=img.naturalWidth, h=img.naturalHeight;
       if(w>MAX||h>MAX){ const r=Math.min(MAX/w,MAX/h); w=Math.round(w*r); h=Math.round(h*r); }
       const cv=document.createElement("canvas"); cv.width=w; cv.height=h;
       cv.getContext("2d").drawImage(img,0,0,w,h);
       URL.revokeObjectURL(url);
-      cv.toBlob(b=>res(b||blob),"image/webp",0.82);
+      cv.toBlob(b=>res(b||blob),"image/webp",0.78);
     };
     img.onerror=()=>{ URL.revokeObjectURL(url); res(blob); };
     img.src=url;
@@ -382,66 +380,78 @@ async function uploadMedia(blob,type,filename){
   const id=nid(), now=new Date(), t=tp(now);
 
   if(type==="image"){
-    // ── 圖片：先用 blob URL 即時顯示，背景壓縮上傳 ──
+    // ── 圖片：即時顯示 blob preview，背景壓縮後存 Firestore base64 ──
     const previewUrl=URL.createObjectURL(blob);
     const msg={id,type:"image",url:previewUrl,preview:true,filename:"",time:t,ts:Date.now()};
     msgs.push(msg); appendEl(msg); scrollB(); hideEmpty(); updCnt();
-    // 在泡泡右上角顯示小小的上傳中指示
     const imgEl=document.querySelector(`.msg[data-id="${id}"] img`);
-    if(imgEl) imgEl.style.opacity="0.7";
 
-    // 背景壓縮 + 上傳
-    compressImage(blob).then(async compressed=>{
-      try{
-        const path=`rooms/${ROOM}/${id}.webp`;
-        await uploadBytes(sref(st,path),compressed);
-        const firebaseUrl=await getDownloadURL(sref(st,path));
-        // 替換本機 preview URL → Firebase URL
-        URL.revokeObjectURL(previewUrl);
-        const idx=msgs.findIndex(m=>m.id===id);
-        if(idx!==-1) msgs[idx]={...msgs[idx],url:firebaseUrl,preview:false,storagePath:path};
-        if(imgEl){ imgEl.src=firebaseUrl; imgEl.style.opacity="1"; }
-        // 寫 Firestore（讓其他裝置也收到）
-        await setDoc(MDOC(id),{type:"image",url:firebaseUrl,filename:"",storagePath:path,time:t,ts:Date.now()});
-      }catch(e){
-        console.error(e); showToast("圖片同步失敗，僅本機可見 😢");
-        if(imgEl) imgEl.style.opacity="1";
-      }
+    compressImage(blob).then(compressed=>{
+      const reader=new FileReader();
+      reader.onload=async ev=>{
+        const b64=ev.target.result;
+        // 檢查大小（Firestore 文件限制 ~900KB base64 安全值）
+        if(b64.length > 900*1024){
+          showToast("圖片壓縮後仍太大（>900KB），請截更小範圍 😢");
+          URL.revokeObjectURL(previewUrl);
+          document.querySelector(`.msg[data-id="${id}"]`)?.remove();
+          msgs=msgs.filter(m=>m.id!==id); updCnt();
+          return;
+        }
+        try{
+          // 替換成 base64（在其他裝置也能直接顯示）
+          URL.revokeObjectURL(previewUrl);
+          const idx=msgs.findIndex(m=>m.id===id);
+          if(idx!==-1){ msgs[idx].url=b64; msgs[idx].preview=false; }
+          if(imgEl){ imgEl.src=b64; imgEl.style.opacity="1"; }
+          await setDoc(MDOC(id),{type:"image",url:b64,filename:"",time:t,ts:Date.now()});
+        }catch(e){
+          console.error(e);
+          showToast("圖片同步失敗 😢");
+          if(imgEl) imgEl.style.opacity="0.5";
+        }
+      };
+      reader.readAsDataURL(compressed);
     });
     return;
   }
 
-  // ── 語音：顯示上傳中泡泡，等上傳完再出現播放器 ──
-  const uploadBlob=blob;
+  // ── 語音：存 base64 到 Firestore（限制60秒以內）──
   const tmp={id,type,url:null,filename,time:t,upl:true};
   msgs.push(tmp); appendEl(tmp); scrollB(); hideEmpty(); updCnt();
-  try{
-    const ext=uploadBlob.type.includes("ogg")?"ogg":uploadBlob.type.split("/")[1]?.split(";")[0]||"bin";
-    const path=`rooms/${ROOM}/${id}.${ext}`;
-    await uploadBytes(sref(st,path),uploadBlob);
-    const url=await getDownloadURL(sref(st,path));
-    document.querySelector(`.msg[data-id="${id}"]`)?.remove();
-    msgs=msgs.filter(m=>m.id!==id);
-    await setDoc(MDOC(id),{type,url,filename:filename||"",storagePath:path,time:t,ts:Date.now()});
-  }catch(e){
-    console.error(e); showToast("上傳失敗 😢");
-    document.querySelector(`.msg[data-id="${id}"]`)?.remove();
-    msgs=msgs.filter(m=>m.id!==id); updCnt();
-  }
+  const reader=new FileReader();
+  reader.onload=async ev=>{
+    const b64=ev.target.result;
+    // Firestore 單文件上限 ~900KB base64 安全值
+    if(b64.length > 900*1024){
+      showToast("語音太長（建議60秒內）😢");
+      document.querySelector(`.msg[data-id="${id}"]`)?.remove();
+      msgs=msgs.filter(m=>m.id!==id); updCnt();
+      return;
+    }
+    try{
+      document.querySelector(`.msg[data-id="${id}"]`)?.remove();
+      msgs=msgs.filter(m=>m.id!==id);
+      await setDoc(MDOC(id),{type:"audio",url:b64,filename:filename||"",time:t,ts:Date.now()});
+    }catch(e){
+      console.error(e); showToast("語音同步失敗 😢");
+      document.querySelector(`.msg[data-id="${id}"]`)?.remove();
+      msgs=msgs.filter(m=>m.id!==id); updCnt();
+    }
+  };
+  reader.readAsDataURL(blob);
 }
 
 async function delMsg(id){
   if(amap[id]){ amap[id].pause(); amap[id].src=""; delete amap[id]; }
   const el=document.querySelector(`.msg[data-id="${id}"]`);
   if(el){ el.style.transition="opacity .18s,transform .18s"; el.style.opacity="0"; el.style.transform="scale(.95)"; setTimeout(()=>el.remove(),190); }
-  const m=msgs.find(m=>m.id===id);
-  if(m?.storagePath){ try{ await deleteObject(sref(st,m.storagePath)); }catch(e){} }
+  const m=msgs.find(m=>m.id===id); // no storage to clean up
   msgs=msgs.filter(m=>m.id!==id); updCnt();
   if(!msgs.length) showEmpty();
   await deleteDoc(MDOC(id));
 }
 async function clearAll(){
-  await Promise.all(msgs.filter(m=>m.storagePath).map(m=>deleteObject(sref(st,m.storagePath)).catch(()=>{})));
   await Promise.all(msgs.map(m=>deleteDoc(MDOC(m.id)).catch(()=>{})));
   msgs=[]; renderAll();
 }
