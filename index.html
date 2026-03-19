@@ -168,6 +168,17 @@ header{flex-shrink:0;padding:10px 16px 10px;background:rgba(253,247,247,0.97);bo
 @media(min-width:800px){
   .app{border-left:1px solid var(--bdr);border-right:1px solid var(--bdr);box-shadow:0 0 60px rgba(230,180,180,.12)}
 }
+
+/* TOGGLE */
+.tog-row{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border:1.5px solid var(--bdr);border-radius:13px;background:var(--card)}
+.tog-lbl{font-size:13px;font-weight:600;color:var(--txt);font-family:var(--fmn)}
+.tog-sub{font-size:11px;color:var(--txl);margin-top:1px}
+.tog{position:relative;width:42px;height:24px;flex-shrink:0}
+.tog input{opacity:0;width:0;height:0}
+.tog-sl{position:absolute;inset:0;background:#ddd;border-radius:24px;cursor:pointer;transition:background .2s}
+.tog-sl::before{content:'';position:absolute;left:3px;top:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform .2s}
+.tog input:checked + .tog-sl{background:var(--pur)}
+.tog input:checked + .tog-sl::before{transform:translateX(18px)}
 </style>
 </head>
 <body>
@@ -252,6 +263,21 @@ header{flex-shrink:0;padding:10px 16px 10px;background:rgba(253,247,247,0.97);bo
     </div>
   </div>
 
+
+  <div class="ss">
+    <div class="sl">播放設定</div>
+    <div class="tog-row">
+      <div>
+        <div class="tog-lbl">🔁 自動重播</div>
+        <div class="tog-sub">播完後自動從頭再播</div>
+      </div>
+      <label class="tog">
+        <input type="checkbox" id="loopTog" onchange="setLoop(this.checked)">
+        <span class="tog-sl"></span>
+      </label>
+    </div>
+  </div>
+
   <button class="closeS" onclick="closeS()">關閉</button>
 </div>
 </div>
@@ -280,17 +306,19 @@ const COLL = () => collection(db,"rooms",ROOM,"messages");
 const MDOC = id  => doc(db,"rooms",ROOM,"messages",id);
 
 const LS = "sr_settings";
-let msgs=[], clearT="00:00", lastClr="", unsub=null;
+let msgs=[], clearT="00:00", lastClr="", loopOn=false, unsub=null;
 const amap={};
 let mrec=null, chunks=[], recTmr=null, recSec=0, recOn=false;
 
 function loadS(){
-  try{ const s=JSON.parse(localStorage.getItem(LS)||"{}"); clearT=s.clearT||"00:00"; lastClr=s.lastClr||""; }catch(e){}
+  try{ const s=JSON.parse(localStorage.getItem(LS)||"{}"); clearT=s.clearT||"00:00"; lastClr=s.lastClr||""; loopOn=s.loopOn||false; }catch(e){}
   document.getElementById("ctm").value=clearT;
   document.getElementById("ctmL").textContent=clearT;
+  document.getElementById("loopTog").checked=loopOn;
   updChips();
 }
-function saveS(){ localStorage.setItem(LS,JSON.stringify({clearT,lastClr})); }
+function setLoop(v){ loopOn=v; saveS(); Object.values(amap).forEach(a=>{ a.loop=v; }); showToast(v?"自動重播已開啟 🔁":"自動重播已關閉"); }
+function saveS(){ localStorage.setItem(LS,JSON.stringify({clearT,lastClr,loopOn})); }
 
 function ds(d=new Date()){ return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`; }
 function prevD(d){ const p=new Date(d); p.setDate(p.getDate()-1); return ds(p); }
@@ -464,11 +492,11 @@ function bub(m){
 function bindAudio(el,m){
   const btn=el.querySelector(".apb"),bar=el.querySelector(".apbar"),trk=el.querySelector(".aptrk"),tim=el.querySelector(".aptm");
   if(!btn||!m.url) return;
-  const a=new Audio(m.url); amap[m.id]=a;
+  const a=new Audio(m.url); a.loop=loopOn; amap[m.id]=a;
   const fmt=s=>isNaN(s)?"0:00":`${Math.floor(s/60)}:${p2(Math.floor(s%60))}`;
   a.addEventListener("loadedmetadata",()=>tim.textContent=`0:00 / ${fmt(a.duration)}`);
   a.addEventListener("timeupdate",()=>{ if(!a.duration)return; bar.style.width=(a.currentTime/a.duration*100)+"%"; tim.textContent=`${fmt(a.currentTime)} / ${fmt(a.duration)}`; });
-  a.addEventListener("ended",()=>{ btn.textContent="▶"; btn.dataset.playing="false"; bar.style.width="0%"; });
+  a.addEventListener("ended",()=>{ if(!a.loop){ btn.textContent="▶"; btn.dataset.playing="false"; bar.style.width="0%"; } });
   btn.addEventListener("click",()=>{
     Object.entries(amap).forEach(([id,x])=>{ if(id!==m.id&&!x.paused){ x.pause(); const ob=document.querySelector(`.ap[data-id="${id}"] .apb`); if(ob){ob.textContent="▶";} } });
     if(a.paused){a.play();btn.textContent="⏸";}else{a.pause();btn.textContent="▶";}
