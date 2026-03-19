@@ -317,7 +317,7 @@ function loadS(){
   document.getElementById("loopTog").checked=loopOn;
   updChips();
 }
-function setLoop(v){ loopOn=v; saveS(); Object.values(amap).forEach(a=>{ a.loop=v; }); showToast(v?"自動重播已開啟 🔁":"自動重播已關閉"); }
+function setLoop(v){ loopOn=v; saveS(); showToast(v?"自動重播已開啟 🔁":"自動重播已關閉"); }
 function saveS(){ localStorage.setItem(LS,JSON.stringify({clearT,lastClr,loopOn})); }
 
 function ds(d=new Date()){ return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`; }
@@ -492,11 +492,11 @@ function bub(m){
 function bindAudio(el,m){
   const btn=el.querySelector(".apb"),bar=el.querySelector(".apbar"),trk=el.querySelector(".aptrk"),tim=el.querySelector(".aptm");
   if(!btn||!m.url) return;
-  const a=new Audio(m.url); a.loop=loopOn; amap[m.id]=a;
+  const a=new Audio(m.url); amap[m.id]=a;
   const fmt=s=>isNaN(s)?"0:00":`${Math.floor(s/60)}:${p2(Math.floor(s%60))}`;
   a.addEventListener("loadedmetadata",()=>tim.textContent=`0:00 / ${fmt(a.duration)}`);
   a.addEventListener("timeupdate",()=>{ if(!a.duration)return; bar.style.width=(a.currentTime/a.duration*100)+"%"; tim.textContent=`${fmt(a.currentTime)} / ${fmt(a.duration)}`; });
-  a.addEventListener("ended",()=>{ if(!a.loop){ btn.textContent="▶"; btn.dataset.playing="false"; bar.style.width="0%"; } });
+  a.addEventListener("ended",()=>{ if(loopOn){ a.currentTime=0; a.play(); } else { btn.textContent="▶"; btn.dataset.playing="false"; bar.style.width="0%"; } });
   btn.addEventListener("click",()=>{
     Object.entries(amap).forEach(([id,x])=>{ if(id!==m.id&&!x.paused){ x.pause(); const ob=document.querySelector(`.ap[data-id="${id}"] .apb`); if(ob){ob.textContent="▶";} } });
     if(a.paused){a.play();btn.textContent="⏸";}else{a.pause();btn.textContent="▶";}
