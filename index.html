@@ -26,11 +26,9 @@ html,body{height:100%;margin:0;background:linear-gradient(135deg,var(--bg),var(-
 .app{display:flex;flex-direction:column;height:100vh;height:100dvh;max-width:800px;margin:0 auto;position:relative}
 
 /* HEADER */
-header{flex-shrink:0;padding:13px 16px 9px;background:rgba(253,247,247,0.95);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;gap:10px}
+header{flex-shrink:0;padding:10px 16px 10px;background:rgba(253,247,247,0.97);border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;gap:10px}
 .hl{display:flex;align-items:center;gap:10px}
-.logo{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--pri),var(--prd));display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 10px rgba(230,180,180,0.4);flex-shrink:0}
-.htxt h1{font-family:var(--fdp);font-size:17px;font-weight:600;margin:0;color:var(--txt);line-height:1.2}
-.hsub{display:flex;align-items:center;gap:7px;margin-top:2px}
+.hsub{display:flex;align-items:center;gap:7px}
 .hdate{font-size:11px;color:var(--txl);font-family:var(--fmn);font-weight:600;letter-spacing:.4px}
 .cnt{font-size:10.5px;font-family:var(--fmn);font-weight:700;color:#fff;background:var(--pri);padding:1px 7px;border-radius:20px}
 .cnt.bump{animation:bump .25s ease}
@@ -41,7 +39,7 @@ header{flex-shrink:0;padding:13px 16px 9px;background:rgba(253,247,247,0.95);bac
 .sdot.busy{background:#f0c060;animation:pd 1s infinite}
 @keyframes pd{0%,100%{opacity:1}50%{opacity:.35}}
 .hr{display:flex;align-items:center;gap:6px}
-.ibtn{width:34px;height:34px;border-radius:50%;border:1px solid var(--bdr);background:var(--card);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--acc);transition:background .15s,transform .15s}
+.ibtn{width:34px;height:34px;border-radius:50%;border:1px solid var(--bdr);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--acc);transition:background .15s,transform .15s}
 .ibtn:hover{background:#fce8e8;transform:scale(1.08)}
 .ibtn:active{transform:scale(.92)}
 
@@ -58,7 +56,7 @@ header{flex-shrink:0;padding:13px 16px 9px;background:rgba(253,247,247,0.95);bac
 /* MSG */
 .msg{display:flex;flex-direction:column;gap:4px;animation:mi .25s cubic-bezier(.34,1.56,.64,1)}
 @keyframes mi{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
-.bub{background:var(--mbg);border:1px solid var(--bdr);border-radius:16px 16px 16px 4px;padding:10px 14px;box-shadow:var(--shd);word-break:break-word;font-size:14.5px;line-height:1.65;white-space:pre-wrap}
+.bub{background:var(--mbg);border:1px solid var(--bdr);border-radius:16px 16px 16px 4px;padding:10px 14px;word-break:break-word;font-size:14.5px;line-height:1.65;white-space:pre-wrap}
 .bub.img{padding:7px;background:#fdf0f0}
 .bub.img img{max-width:100%;max-height:360px;border-radius:10px;display:block;cursor:zoom-in;object-fit:contain}
 .bub.aud{padding:10px 12px;background:var(--purl)}
@@ -88,18 +86,17 @@ header{flex-shrink:0;padding:13px 16px 9px;background:rgba(253,247,247,0.95);bac
 .aptm{font-size:10px;color:var(--pur);font-family:var(--fmn);font-weight:600;margin-top:3px}
 
 /* RECORD */
-.recwrap{display:flex;justify-content:center;padding:4px 0 2px}
-.recbtn{display:flex;align-items:center;gap:7px;padding:10px 24px;border:none;border-radius:24px;cursor:pointer;font-family:var(--fnt);font-size:13.5px;font-weight:700;background:linear-gradient(135deg,#f0d4d4,#e6b4b4);color:var(--txt);box-shadow:0 3px 12px rgba(230,180,180,.35);transition:all .2s;user-select:none;-webkit-user-select:none}
-.recbtn:hover{transform:scale(1.04)}
-.recbtn:active{transform:scale(.96)}
-.recbtn.rec{background:linear-gradient(135deg,#e87070,#c95050);color:white;box-shadow:0 3px 18px rgba(200,80,80,.45);animation:rp 1.4s ease-in-out infinite}
-@keyframes rp{0%,100%{box-shadow:0 3px 18px rgba(200,80,80,.45)}50%{box-shadow:0 3px 28px rgba(200,80,80,.7)}}
-.recdot{width:10px;height:10px;border-radius:50%;background:currentColor;flex-shrink:0}
-.rectm{font-family:var(--fmn);font-size:12.5px;opacity:.85;min-width:30px}
+.recbtn{display:flex;align-items:center;justify-content:center;gap:4px;width:36px;height:36px;border:1.5px solid var(--bdr);border-radius:50%;cursor:pointer;background:#fff;color:var(--prd);flex-shrink:0;transition:all .18s;user-select:none;-webkit-user-select:none}
+.recbtn:hover{background:#fce8e8;border-color:var(--pri)}
+.recbtn:active{transform:scale(.92)}
+.recbtn.rec{background:#e87070;color:white;border-color:#e87070;animation:rp 1.4s ease-in-out infinite}
+@keyframes rp{0%,100%{box-shadow:0 0 0 0 rgba(200,80,80,.3)}50%{box-shadow:0 0 0 6px rgba(200,80,80,0)}}
+.recdot{width:8px;height:8px;border-radius:50%;background:currentColor;flex-shrink:0}
+.rectm{font-family:var(--fmn);font-size:10.5px;font-weight:700;opacity:.85;min-width:26px}
 
 /* INPUT */
-.inarea{flex-shrink:0;padding:8px 12px;padding-bottom:calc(8px + var(--sb));background:rgba(253,247,247,.96);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid var(--bdr)}
-.inrow{display:flex;align-items:flex-end;gap:6px;background:var(--card);border:1.5px solid var(--bdr);border-radius:20px;padding:6px 7px 6px 14px;box-shadow:0 2px 12px rgba(230,180,180,.1);transition:border-color .2s;margin-top:8px}
+.inarea{flex-shrink:0;padding:8px 12px;padding-bottom:calc(8px + var(--sb));background:rgba(253,247,247,.97);border-top:1px solid var(--bdr)}
+.inrow{display:flex;align-items:center;gap:6px;background:var(--card);border:1.5px solid var(--bdr);border-radius:24px;padding:5px 7px 5px 8px;transition:border-color .2s}
 .inrow:focus-within{border-color:var(--pri)}
 #ta{flex:1;border:none;outline:none;background:transparent;font-family:var(--fnt);font-size:14.5px;color:var(--txt);resize:none;max-height:120px;min-height:22px;line-height:1.5;padding:2px 0}
 #ta::placeholder{color:#cbb5b5}
@@ -107,7 +104,7 @@ header{flex-shrink:0;padding:13px 16px 9px;background:rgba(253,247,247,0.95);bac
 .iab{width:32px;height:32px;border:none;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:transform .15s,background .15s;flex-shrink:0}
 .igh{background:transparent;color:var(--txl)}
 .igh:hover{background:#f3e5e5;color:var(--prd)}
-.isd{background:linear-gradient(135deg,var(--pri),var(--prd));color:white;box-shadow:0 2px 8px rgba(230,180,180,.4)}
+.isd{background:var(--pri);color:white;}
 .isd:hover{transform:scale(1.08)}
 .isd:active{transform:scale(.92)}
 .hint{text-align:center;font-size:10px;color:#d4b8b8;margin-top:5px}
@@ -177,14 +174,10 @@ header{flex-shrink:0;padding:13px 16px 9px;background:rgba(253,247,247,0.95);bac
 <div class="app">
   <header>
     <div class="hl">
-      <div class="logo">📖</div>
-      <div class="htxt">
-        <h1>今日學習室</h1>
-        <div class="hsub">
-          <span class="hdate" id="hdate">…</span>
-          <span class="cnt" id="cnt">0 則</span>
-          <span class="sdot busy" id="sdot" title="連線中…"></span>
-        </div>
+      <div class="hsub">
+        <span class="hdate" id="hdate">…</span>
+        <span class="cnt" id="cnt">0 則</span>
+        <span class="sdot busy" id="sdot" title="連線中…"></span>
       </div>
     </div>
     <div class="hr">
@@ -202,14 +195,11 @@ header{flex-shrink:0;padding:13px 16px 9px;background:rgba(253,247,247,0.95);bac
   <button id="scrbtn" onclick="scrollB()">↓</button>
 
   <div class="inarea">
-    <div class="recwrap">
+    <div class="inrow">
       <button class="recbtn" id="recbtn" onclick="toggleRec()">
         <span class="recdot"></span>
-        <span id="reclbl">點擊錄音</span>
         <span class="rectm" id="rectm" style="display:none">0:00</span>
       </button>
-    </div>
-    <div class="inrow">
       <textarea id="ta" rows="1" placeholder="今天學到什麼… (Ctrl+V 可貼圖)" autocomplete="off"></textarea>
       <div class="ias">
         <button class="iab igh" onclick="document.getElementById('fimg').click()" title="上傳圖片">🖼</button>
@@ -517,13 +507,13 @@ async function toggleRec(){
       mrec.start(200); recOn=true; recSec=0;
       recTmr=setInterval(()=>{ recSec++; document.getElementById("rectm").textContent=`${Math.floor(recSec/60)}:${p2(recSec%60)}`; },1000);
       document.getElementById("recbtn").classList.add("rec");
-      document.getElementById("reclbl").textContent="點擊停止";
+      
       document.getElementById("rectm").style.display="inline";
     }catch(e){ showToast("無法取得麥克風 😕"); }
   } else {
     mrec?.stop(); recOn=false; clearInterval(recTmr); recSec=0;
     document.getElementById("recbtn").classList.remove("rec");
-    document.getElementById("reclbl").textContent="點擊錄音";
+    
     document.getElementById("rectm").style.display="none";
   }
 }
