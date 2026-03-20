@@ -540,59 +540,43 @@ function sendTxt(){
 }
 window.sendTxt=sendTxt;
 
-async function compressImage(blob){
-  return new Promise(res=>{
-    const img=new Image(),url=URL.createObjectURL(blob);
-    img.onload=()=>{
-      const MAX=1200;let w=img.naturalWidth,h=img.naturalHeight;
-      if(w>MAX||h>MAX){const r=Math.min(MAX/w,MAX/h);w=Math.round(w*r);h=Math.round(h*r);}
-      const cv=document.createElement("canvas");cv.width=w;cv.height=h;
-      cv.getContext("2d").drawImage(img,0,0,w,h);
-      URL.revokeObjectURL(url);
-      cv.toBlob(b=>res(b||blob),"image/webp",0.78);
-    };
-    img.onerror=()=>{URL.revokeObjectURL(url);res(blob);};
-    img.src=url;
+const CLD_CLOUD = "dgeefezul";
+const CLD_PRESET = "studyroom";
+
+async function uploadToCloudinary(blob, resourceType) {
+  const fd = new FormData();
+  fd.append("file", blob);
+  fd.append("upload_preset", CLD_PRESET);
+  const res = await fetch(`https://api.cloudinary.com/v1_1/${CLD_CLOUD}/${resourceType}/upload`, {
+    method: "POST", body: fd
   });
+  if (!res.ok) throw new Error("Cloudinary upload failed");
+  const data = await res.json();
+  return data.secure_url;
 }
 
-async function uploadMedia(blob,type,filename){
-  const id=nid(),now=new Date(),t=tp(now);
-  if(type==="image"){
-    const pu=URL.createObjectURL(blob);
-    const msg={id,type:"image",url:pu,preview:true,filename:"",time:t,ts:Date.now()};
-    msgs.push(msg);appendEl(msg);scrollB();hideEmpty();updCnt();
-    const imgEl=document.querySelector(`.msg[data-id="${id}"] img`);
-    compressImage(blob).then(c=>{
-      const r=new FileReader();
-      r.onload=async ev=>{
-        const b64=ev.target.result;
-        if(b64.length>900*1024){showToast("圖片太大 😢");URL.revokeObjectURL(pu);document.querySelector(`.msg[data-id="${id}"]`)?.remove();msgs=msgs.filter(m=>m.id!==id);updCnt();return;}
-        try{
-          URL.revokeObjectURL(pu);
-          const i=msgs.findIndex(m=>m.id===id);
-          if(i!==-1){msgs[i].url=b64;msgs[i].preview=false;}
-          if(imgEl){imgEl.src=b64;imgEl.style.opacity="1";}
-          await setDoc(MDOC(id),{type:"image",url:b64,filename:"",time:t,ts:Date.now()});
-        }catch(e){console.error(e);showToast("圖片同步失敗 😢");if(imgEl)imgEl.style.opacity="0.5";}
-      };
-      r.readAsDataURL(c);
-    });
-    return;
+async function uploadMedia(blob, type, filename){
+  const id=nid(), now=new Date(), t=tp(now);
+
+  // show uploading placeholder
+  const tmp={id, type, url:null, filename, time:t, upl:true};
+  msgs.push(tmp); appendEl(tmp); scrollB(); hideEmpty(); updCnt();
+  const el=()=>document.querySelector(`.msg[data-id="${id}"]`);
+
+  try {
+    const resourceType = type==="image" ? "image" : "video"; // Cloudinary uses "video" for audio
+    const url = await uploadToCloudinary(blob, resourceType);
+
+    // remove placeholder, save to Firestore with URL only
+    el()?.remove();
+    msgs = msgs.filter(m=>m.id!==id);
+    await setDoc(MDOC(id), {type, url, filename:filename||"", time:t, ts:Date.now()});
+  } catch(e) {
+    console.error(e);
+    showToast(type==="image" ? "圖片上傳失敗 😢" : "語音上傳失敗 😢");
+    el()?.remove();
+    msgs = msgs.filter(m=>m.id!==id); updCnt();
   }
-  const tmp={id,type,url:null,filename,time:t,upl:true};
-  msgs.push(tmp);appendEl(tmp);scrollB();hideEmpty();updCnt();
-  const r=new FileReader();
-  r.onload=async ev=>{
-    const b64=ev.target.result;
-    if(b64.length>900*1024){showToast("語音太長 😢");document.querySelector(`.msg[data-id="${id}"]`)?.remove();msgs=msgs.filter(m=>m.id!==id);updCnt();return;}
-    try{
-      document.querySelector(`.msg[data-id="${id}"]`)?.remove();
-      msgs=msgs.filter(m=>m.id!==id);
-      await setDoc(MDOC(id),{type:"audio",url:b64,filename:filename||"",time:t,ts:Date.now()});
-    }catch(e){console.error(e);showToast("語音同步失敗 😢");document.querySelector(`.msg[data-id="${id}"]`)?.remove();msgs=msgs.filter(m=>m.id!==id);updCnt();}
-  };
-  r.readAsDataURL(blob);
 }
 
 async function delMsg(id){
