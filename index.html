@@ -472,13 +472,13 @@ const COLL=()=>collection(db,"rooms",ROOM,"messages");
 const MDOC=id=>doc(db,"rooms",ROOM,"messages",id);
 const LS="sr_v3";
 
-let msgs=[],clearT="00:00",lastClr="",loopOn=false,unsub=null;
+let msgs=[],clearT="",lastClr="",loopOn=false,unsub=null;
 let firstSnap=false; // BUG FIX flag
 const amap={};
 let mrec=null,chunks=[],recTmr=null,recSec=0,recOn=false;
 
 function loadS(){
-  try{const s=JSON.parse(localStorage.getItem(LS)||"{}");clearT=s.clearT||"00:00";lastClr=s.lastClr||"";loopOn=s.loopOn||false;}catch(e){}
+  try{const s=JSON.parse(localStorage.getItem(LS)||"{}");clearT=s.clearT||"";lastClr=s.lastClr||"";loopOn=s.loopOn||false;}catch(e){}
   document.getElementById("ctm").value=clearT;
   document.getElementById("loopTog").checked=loopOn;
 }
@@ -508,12 +508,13 @@ function setSdot(s){
 /* BUG FIX: only run checkClr after first snapshot so msgs is loaded */
 async function checkClr(){
   if(!firstSnap) return;
-  const now=new Date(),today=ds();
+  if(!clearT) return;
+  const now=new Date();
   const [ch,cm]=clearT.split(":").map(Number);
   const nm=now.getHours()*60+now.getMinutes(),cm2=ch*60+cm;
-  const logical=nm>=cm2?today:prevD(now);
-  if(lastClr!==logical&&nm>=cm2){
-    await clearAll();lastClr=logical;saveS();showToast("已自動清空 🌸");
+  const key=`${ds()}_${clearT}`;
+  if(nm>=cm2&&lastClr!==key){
+    await clearAll();lastClr=key;saveS();showToast("已自動清空 🌸");
   }
 }
 
@@ -637,9 +638,15 @@ function bindAudio(el,m){
 async function toggleRec(){
   if(!recOn){
     try{
-      const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+      const stream=await navigator.mediaDevices.getUserMedia({audio:{
+        echoCancellation:false,
+        noiseSuppression:false,
+        sampleRate:44100,
+        channelCount:1
+      }});
       const mime=["audio/webm;codecs=opus","audio/webm","audio/ogg","audio/mp4",""].find(t=>!t||MediaRecorder.isTypeSupported(t))||"";
-      mrec=new MediaRecorder(stream,mime?{mimeType:mime}:{});
+      const opts=mime?{mimeType:mime,audioBitsPerSecond:128000}:{audioBitsPerSecond:128000};
+      mrec=new MediaRecorder(stream,opts);
       chunks=[];
       mrec.ondataavailable=e=>{if(e.data.size>0)chunks.push(e.data);};
       mrec.onstop=()=>{
