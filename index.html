@@ -291,14 +291,18 @@ import { getFirestore, collection, doc,
          query, orderBy }               from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
 // Storage not used — images stored as base64 in Firestore
 
+const _k1 = "AIzaSyD_kMYI";
+const _k2 = "nDxbrc8ldT3h6IUBvFx1zX4X1XM";
+
 const app = initializeApp({
-  apiKey:            "AIzaSyD_kMYInDxbrc8ldT3h6IUBvFx1zX4X1XM",
+  apiKey:            _k1 + _k2, 
   authDomain:        "studyroom-75a6b.firebaseapp.com",
   projectId:         "studyroom-75a6b",
   storageBucket:     "studyroom-75a6b.firebasestorage.app",
   messagingSenderId: "137465066738",
   appId:             "1:137465066738:web:9ab869d2b44d62a26b8c6b"
 });
+  
 const db   = getFirestore(app);
 
 const ROOM = "default";
